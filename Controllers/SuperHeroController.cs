@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SuperHeroAPI.Models;
 
 namespace SuperHeroAPI.Controllers
@@ -7,12 +8,6 @@ namespace SuperHeroAPI.Controllers
     [ApiController]
     public class SuperHeroController : ControllerBase
     {
-        // private readonly AppDbContext _context;
-        // public SuperHeroController(AppDbContext context)
-        // {
-        //     _context = context;
-        // } 
-
         private static List<SuperHero> heroes = new List<SuperHero>
         {
             new SuperHero
@@ -34,16 +29,19 @@ namespace SuperHeroAPI.Controllers
             }
         };
 
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
+        private readonly AppDbContext _context;
+        public SuperHeroController(AppDbContext context)
         {
-            return Ok(heroes);
-        }
+            _context = context;
+        } 
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()=> Ok(await _context.SuperHeroes.ToListAsync());
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var hero = heroes.FirstOrDefault( x => x.Id == id);
+            var hero = await _context.SuperHeroes.FirstOrDefaultAsync( x => x.Id == id);
 
             if(hero == null)
                 return NotFound("Super herói não encontrado.");
@@ -53,14 +51,15 @@ namespace SuperHeroAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> AddHero(SuperHero hero)
         {
-            heroes.Add(hero);
+            await _context.SuperHeroes.AddAsync(hero);
+            _context.SaveChanges();
             return Ok(hero);
         }
 
-        [HttpPut]
-        public async Task<IActionResult> UpdateHero(SuperHero hero)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateHero(SuperHero hero, int id)
         {
-            var superHero = heroes.FirstOrDefault(x => x.Id == hero.Id);
+            var superHero = await _context.SuperHeroes.FirstOrDefaultAsync(x => x.Id == id);
             
             if(hero == null)
                 return NotFound("Super herói não encontrado.");
@@ -70,18 +69,21 @@ namespace SuperHeroAPI.Controllers
             superHero.LastName = hero.LastName;
             superHero.Place = hero.Place;
 
+            _context.SaveChanges();
+
             return Ok(hero);           
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteHero(SuperHero hero)
+        public async Task<IActionResult> DeleteHero(int id)
         {
-            var superHero = heroes.FirstOrDefault(x => x.Id == hero.Id);
+            var superHero = await _context.SuperHeroes.FirstOrDefaultAsync(x => x.Id == id);
             
-            if(hero == null)
-                return NotFound("Super herói não encontrado.");
+            if(superHero == null)
+                return NotFound();
 
-            heroes.Remove(superHero);
+            _context.SuperHeroes.Remove(superHero);
+            _context.SaveChanges();
 
             return Ok(superHero);           
         }
